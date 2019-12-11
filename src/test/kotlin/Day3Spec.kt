@@ -22,7 +22,7 @@ object Day3Spec: Spek({
 
         it("works with task data") {
             assertEquals(280, Day3.solvePt1(readLines("3.txt")))
-        } // 1779 too high
+        }
     }
 
     given("AoC 19.3.2") {
