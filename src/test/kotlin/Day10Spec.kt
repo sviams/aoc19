@@ -36,7 +36,7 @@ object Day10Spec: Spek({
     given("AoC 19.10.2") {
 
         it("works with test data") {
-            assertEquals(802, Day10.solvePt2(readLines("10_4.txt"), Day10.Pos(11,13)))
+            assertEquals(802, Day10.solvePt2(readLines("10_4.txt"), Pos(11,13)))
         }
         /*
         it("works with test data 2") {
@@ -45,7 +45,7 @@ object Day10Spec: Spek({
         */
 
         it("works with task data") {
-            assertEquals(502, Day10.solvePt2(readLines("10.txt"), Day10.Pos(8,16)))
+            assertEquals(502, Day10.solvePt2(readLines("10.txt"), Pos(8,16)))
         }
 
     }

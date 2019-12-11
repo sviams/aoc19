@@ -23,7 +23,7 @@ object Day7Spec: Spek({
         }
 
         it("works with task data") {
-            assertEquals(34686, Day7.solvePt1(readLines("7.txt").first().split(",").map { it.toInt() }))
+            assertEquals(34686, Day7.solvePt1(readLines("7.txt").first().split(",").map { it.toLong() }))
         }
     }
 
@@ -41,7 +41,7 @@ object Day7Spec: Spek({
         }
 
         it("works with task data") {
-            assertEquals(36384144, Day7.solvePt2(readLines("7.txt").first().split(",").map { it.toInt() }))
+            assertEquals(36384144, Day7.solvePt2(readLines("7.txt").first().split(",").map { it.toLong() }))
         }
 
     }

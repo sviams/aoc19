@@ -4,11 +4,6 @@ import kotlin.math.min
 
 object Day10 {
 
-    data class Pos(val x: Int, val y: Int) {
-        fun minus(other: Pos) = Pos(x - other.x, y - other.y)
-        fun plus(other: Pos) = Pos(x + other.x, y + other.y)
-    }
-
     fun parseGrid(input: List<String>) : List<List<Int>> =
         input.map { line -> line.map { if (it == '#') 1 else 0 } }
 
