@@ -12,3 +12,7 @@ data class Pos(val x: Int, val y: Int) {
 }
 
 typealias Path = List<Pos>
+
+fun gcd(a: Long, b: Long): Long = if (b == 0L) a else gcd(b, a % b)
+fun lcm(a: Long, b: Long): Long = a / gcd(a, b) * b
+fun lcm(a: Long, b: Long, c: Long) = lcm(a, lcm(b,c))
