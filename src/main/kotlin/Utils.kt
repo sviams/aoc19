@@ -6,6 +6,7 @@ data class Pos(val x: Int, val y: Int) {
     fun times(other: Pos) = Pos(x * other.x, y * other.y)
     fun distanceTo(other: Pos) = abs(x - other.x) + abs(y - other.y)
     fun product() = x * y
+    fun toGP() = GridPosition(x,y)
     override fun equals(other: Any?): Boolean {
         val o = other as Pos
         return x == o.x && y == o.y
