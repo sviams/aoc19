@@ -6,71 +6,25 @@ object Day20 {
 
     data class PositionOfInterest(val pos: GridPosition, val name: String, val connectsTo: Map<GridPosition, NameAndDistance>)
 
-    fun parseLocationsOfInterest(map: List<String>, w: Int, h: Int) : Pair<List<PositionOfInterest>, Set<GridPosition>> {
-        val firstTwo = map.take(2)
-        val fromTop = firstTwo.first().foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(index-2 to 0, "$c${firstTwo.last().get(index)}", emptyMap())
+    val NORTH = GridPosition(0,-1)
+    val SOUTH = GridPosition(0,1)
+    val WEST = GridPosition(-1,0)
+    val EAST = GridPosition(1,0)
+
+    fun poiAtPos(map: List<String>, pos: GridPosition): Pair<PositionOfInterest, GridPosition>? =
+        listOf(NORTH, SOUTH, EAST, WEST).fold(emptyList<Pair<PositionOfInterest, GridPosition>>()) { acc, dir ->
+            val checkPos = GridPosition(pos.first + dir.first + 2, pos.second + dir.second + 2)
+            val atPos = map.get(pos.second + 2).get(pos.first + 2)
+            if (atPos == '.') {
+                val atDir = map.get(pos.second + dir.second + 2).get(pos.first + dir.first + 2)
+                if (atDir.isLetter()) {
+                    val otherLetter = map.get(pos.second + dir.second*2 + 2).get(pos.first + dir.first*2 + 2)
+                    val name = if (dir.first == -1 || dir.second == -1) listOf(otherLetter, atDir) else listOf(atDir, otherLetter)
+                    acc + (PositionOfInterest(pos, name.joinToString(""), emptyMap()) to GridPosition(checkPos.first-2, checkPos.second-2))
+                } else acc
+            }
             else acc
-        }
-
-        val lastTwo = map.takeLast(2)
-        val fromBottom = lastTwo.first().foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(index-2 to h-1, "$c${lastTwo.last().get(index)}", emptyMap())
-            else acc
-        }
-        val extraBarriersFromBottom = fromBottom.map { GridPosition(it.pos.first, it.pos.second+1) }
-
-        val leftTwo = listOf(map.map { it.first() }.joinToString(""), map.map { it.drop(1).first() }.joinToString(""))
-        val fromLeft = leftTwo.first().foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(0 to index-2, "$c${leftTwo.last().get(index)}", emptyMap())
-            else acc
-        }
-
-        val rightTwo = listOf(map.map { it.dropLast(1).last() }.joinToString(""), map.map { it.last() }.joinToString(""))
-        val fromRight = rightTwo.first().foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(w-1 to index-2, "$c${rightTwo.last().get(index)}", emptyMap())
-            else acc
-        }.filter { !it.name.contains('#') }
-        val extraBarriersFromRight = fromRight.map { GridPosition(it.pos.first+1, it.pos.second) }
-
-        return fromTop + fromBottom + fromLeft + fromRight to (extraBarriersFromBottom + extraBarriersFromRight).toSet()
-    }
-
-    fun parseLocationsOfInterestInside(map: List<String>, thickness: Int, width: Int) : Pair<List<PositionOfInterest>, Set<GridPosition>> {
-        val tlOffset = 2 + thickness
-        val insideWidth = width - 2 * thickness
-        val insideHeight = map.size - 4 - 2 * thickness
-
-        val firstTwo = map.drop(tlOffset).take(2)
-        val fromTop = firstTwo.first().drop(tlOffset).take(insideWidth).foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(index + thickness to thickness-1, "$c${firstTwo.last().get(index + tlOffset)}", emptyMap())
-            else acc
-        }
-        val extraBarriersFromTop = fromTop.map { GridPosition(it.pos.first, it.pos.second+1) }
-
-        val lastTwo = map.drop(thickness + insideHeight).take(2)
-        val fromBottom = lastTwo.last().drop(tlOffset).take(insideWidth).foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(index + thickness to thickness+insideHeight, "${lastTwo.first().get(index+tlOffset)}$c", emptyMap())
-            else acc
-        }
-        val extraBarriersFromBottom = fromBottom.map { GridPosition(it.pos.first, it.pos.second-1) }
-
-        val leftTwo = listOf(map.map { it.drop(tlOffset).first() }.joinToString(""), map.map { it.drop(tlOffset + 1).first() }.joinToString(""))
-        val fromLeft = leftTwo.first().drop(tlOffset).take(insideHeight).foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(thickness-1 to index+thickness, "$c${leftTwo.last().get(index + tlOffset)}", emptyMap())
-            else acc
-        }.filter { !it.name.contains('#') && !it.name.contains('.')}
-        val extraBarriersFromLeft = fromLeft.map { GridPosition(it.pos.first+1, it.pos.second) }
-
-        val rightTwo = listOf(map.drop(2).map { it.drop(thickness + insideWidth ).firstOrNull() ?: ' ' }.joinToString(""), map.drop(2).map { it.drop(thickness + insideWidth+1  ).firstOrNull() ?: ' ' }.joinToString(""))
-        val fromRight = rightTwo.first().drop(thickness).take(insideHeight).foldIndexed(emptyList<PositionOfInterest>()) { index, acc, c ->
-            if (c != ' ') acc + PositionOfInterest(thickness + insideWidth to thickness + index, "$c${rightTwo.last().get(index + thickness)}", emptyMap())
-            else acc
-        }.filter { !it.name.contains('#') && !it.name.contains('.') }
-        val extraBarriersFromRight = fromRight.map { GridPosition(it.pos.first-1, it.pos.second) }
-
-        return fromTop + fromBottom + fromLeft + fromRight to (extraBarriersFromTop + extraBarriersFromBottom + extraBarriersFromLeft + extraBarriersFromRight).toSet()
-    }
+        }.firstOrNull()
 
     fun distanceTo(barriers: Set<GridPosition>, from: GridPosition, to: GridPosition, w: Int, h: Int) : Pair<List<GridPosition>, Int> {
         val grid = SquareGrid(w,h,listOf(barriers))
@@ -137,42 +91,45 @@ object Day20 {
         return dirs.min() ?: 0
     }
 
-    fun solvePt1(input: List<String>) : Int {
+    fun solveMaze(input: List<String>, recursive: Boolean) : Int {
         val totalWidth = input.drop(2).first().length - 2
         val totalHeight = input.size - 4
-        val wallThickness = input.drop(2).indexOfFirst { !(it[it.length/2] == '.' || it[it.length/2] == '#' ) }
 
-        val (outside, extraOutsidePlugs) = parseLocationsOfInterest(input, totalWidth, totalHeight)
-        val (inside, extraInsidePlugs) = parseLocationsOfInterestInside(input, wallThickness, totalWidth)
+        val poisAndBarriers = (0 until totalHeight).fold(emptyList<Pair<PositionOfInterest, GridPosition>>()) { rowAcc, row ->
+            (0 until totalWidth).fold(rowAcc) { colAcc, col ->
+                val p = GridPosition(col, row)
+                val maybePoiAndPlug = poiAtPos(input, p)
+                if (maybePoiAndPlug != null) colAcc + maybePoiAndPlug else colAcc
+            }
+        }
+
+        val outsideWithPlugs = poisAndBarriers.filter {
+            val (x,y) = it.first.pos
+            x == 0 || x == totalWidth-1 || y == 0 || y == totalHeight-1
+        }
+
+        val insideWithPlugs = poisAndBarriers.filter { !outsideWithPlugs.contains(it) }
+        val outside = outsideWithPlugs.map { it.first }
+        val inside = insideWithPlugs.map { it.first }
+        val outPlugs = outsideWithPlugs.map { it.second }.filter { it.first >= 0 && it.second >= 0 }
+        val inPlugs = insideWithPlugs.map { it.second }.filter { it.first >= 0 && it.second >= 0 }
 
         val barriers: Set<GridPosition> = input.drop(2).dropLast(2).foldIndexed(emptySet<GridPosition>()) { rowIndex, rowAcc, row ->
             rowAcc + row.drop(2).foldIndexed(emptySet<GridPosition>()) { colIndex, colAcc, c -> if (c == '#') colAcc + GridPosition(colIndex, rowIndex) else colAcc }
-        } + extraInsidePlugs + extraOutsidePlugs
-
-        val allPois = outside + inside
-        val withConnections = allPois.map { it.pos to resolveConnections(it, barriers, allPois.minus(it), totalWidth, totalHeight) }.toMap()
-        val start = withConnections.values.first { it.name == "AA" }
-        val end = withConnections.values.first { it.name == "ZZ" }
-        return walkMaze(withConnections, start, mutableMapOf(), 0).filter { it.key == end.pos }.values.min()!!
-    }
-
-    fun solvePt2(input: List<String>) : Int {
-        val totalWidth = input.drop(2).first().length - 2
-        val totalHeight = input.size - 4
-        val wallThickness = input.drop(2).indexOfFirst { !(it[it.length/2] == '.' || it[it.length/2] == '#' ) }
-
-        val (outside, extraOutsidePlugs) = parseLocationsOfInterest(input, totalWidth, totalHeight)
-        val (inside, extraInsidePlugs) = parseLocationsOfInterestInside(input, wallThickness, totalWidth)
-
-        val barriers: Set<GridPosition> = input.drop(2).dropLast(2).foldIndexed(emptySet<GridPosition>()) { rowIndex, rowAcc, row ->
-            rowAcc + row.drop(2).foldIndexed(emptySet<GridPosition>()) { colIndex, colAcc, c -> if (c == '#') colAcc + GridPosition(colIndex, rowIndex) else colAcc }
-        } + extraInsidePlugs + extraOutsidePlugs
+        } + outPlugs + inPlugs
 
         val allPois = outside + inside
 
         val outsideWithConnections = outside.map { it.pos to resolveConnections(it, barriers, allPois.minus(it), totalWidth, totalHeight) }.toMap()
         val insideWithConnections = inside.map { it.pos to resolveConnections(it, barriers, allPois.minus(it), totalWidth, totalHeight) }.toMap()
         val start = outsideWithConnections.values.first { it.name == "AA" }
-        return walkMazeRecursive(outsideWithConnections, insideWithConnections, start, mutableMapOf(), 0, 0)
+        val end = outsideWithConnections.values.first { it.name == "ZZ" }
+        return if (recursive) walkMazeRecursive(outsideWithConnections, insideWithConnections, start, mutableMapOf(), 0, 0)
+        else walkMaze(outsideWithConnections + insideWithConnections, start, mutableMapOf(), 0).filter { it.key == end.pos }.values.min()!!
     }
+
+    fun solvePt1(input: List<String>) : Int = solveMaze(input, false)
+
+    fun solvePt2(input: List<String>) : Int = solveMaze(input, true)
+
 }
