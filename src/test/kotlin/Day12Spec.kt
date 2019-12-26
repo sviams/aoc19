@@ -25,7 +25,7 @@ object Day12Spec: Spek({
         }
 
         it("works with task data") {
-            assertEquals(-1, Day12.solvePt1(readLines("12.txt"), 1000))
+            assertEquals(7077, Day12.solvePt1(readLines("12.txt"), 1000))
         }
     }
 
