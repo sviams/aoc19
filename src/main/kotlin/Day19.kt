@@ -9,10 +9,10 @@ object Day19 {
         }
     }
 
-    fun calcGrid(prog: IntCodeProgram, startX: Long, endX: Long, startY: Long, endY: Long) =
+    fun calcGrid(prog: ImmutableIntCodeProgram, startX: Long, endX: Long, startY: Long, endY: Long) =
         (startY until endY).map { y ->
             (startX until endX).map { x ->
-                IntCodeComputer.mutable(prog, mutableListOf(x,y)).run(0).output.last()
+                ICC.run(IntCodeComputer.immutable(prog, mutableListOf(x,y))).output.last()
             }
         }
 
@@ -21,7 +21,7 @@ object Day19 {
         calcGrid(IntCodeComputer.parse(program), 0, w, 0, h).fold(0L) { acc, line -> acc + line.sum() }
 
 
-    tailrec fun firstRowWithWidth(prog: IntCodeProgram, startX: Long, endX: Long, targetWidth: Int, row: Long) : Long {
+    tailrec fun firstRowWithWidth(prog: ImmutableIntCodeProgram, startX: Long, endX: Long, targetWidth: Int, row: Long) : Long {
         val r = calcGrid(prog, startX, endX, row, row+1).first()
         val rowWidth = r.sum()
         val nextStartX = startX + r.indexOf(1L)

@@ -1,3 +1,5 @@
+import kotlinx.collections.immutable.persistentListOf
+
 object Day15 {
 
     fun render(pixels: Map<Pos, TypeAndDistance>, player: Pos, dir: Long) {
@@ -62,9 +64,9 @@ object Day15 {
         return back
     }
 
-    tailrec fun findOrFlood(cpu: MutableIntCodeComputer, pos: Pos, dir: Long, goal: Long, map: Map<Pos, TypeAndDistance>) : Pair<Map<Pos, TypeAndDistance>, MutableIntCodeComputer> {
+    tailrec fun findOrFlood(cpu: ICC, pos: Pos, dir: Long, goal: Long, map: Map<Pos, TypeAndDistance>) : Pair<Map<Pos, TypeAndDistance>, ICC> {
         val nextDir = turn(map, dir, pos)
-        val out = cpu.copy(input = listOf(nextDir).toMutableList()).run(cpu.lastPos)
+        val out = ICC.run(cpu.copy(input = persistentListOf(nextDir), output = persistentListOf()))//cpu.copy(input = listOf(nextDir).toMutableList()).run(cpu.lastPos)
         val status = out.output.last()
 
         val checkPos = pos.plus(dirMap[nextDir]!!)
@@ -76,17 +78,17 @@ object Day15 {
         if (newEntry.type == GOAL) System.out.println("Oxygenizer at $checkPos")
         //render(nextMap, nextPos, nextDir)
         if (status == goal || nextMap.size == 1654) return Pair(nextMap, out)
-        return findOrFlood(out.copy(output = mutableListOf()), nextPos, nextDir, goal, nextMap)
+        return findOrFlood(out, nextPos, nextDir, goal, nextMap)
     }
 
     fun solvePt1(program: List<Long>) : Long {
-        val startCpu = IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf())
+        val startCpu = IntCodeComputer.immutableFrom(program, listOf())
         val (endMap, cpu) = findOrFlood(startCpu, Pos(0,0), NORTH, GOAL, mapOf(Pos(0,0) to TypeAndDistance(OPEN, 0)))
         return endMap.filter { it.value.type == GOAL }.values.first().distance
     }
 
     fun solvePt2(program: List<Long>) : Long {
-        val startCpu = IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf())
+        val startCpu = IntCodeComputer.immutableFrom(program, listOf())
         val (halfMap, cpuAtOxygenizer) = findOrFlood(startCpu, Pos(0,0), NORTH, GOAL, mapOf(Pos(0,0) to TypeAndDistance(OPEN, 0)))
         val (secondMap, endCpu) = findOrFlood(cpuAtOxygenizer, Pos(14,-14), NORTH, -1, mapOf(Pos(14,-14) to TypeAndDistance(OPEN, 0)))
         return secondMap.filter { it.value.type == OPEN }.maxBy { it.value.distance }!!.value.distance

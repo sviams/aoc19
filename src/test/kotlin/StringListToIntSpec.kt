@@ -9,26 +9,26 @@ object DayZZZSpec: Spek({
     given("AoC 19.ZZZ.1") {
 
         it("works with test data") {
-            assertEquals(-1, DayZZZ.solvePt1(listOf()))
+            assertEquals(0, DayZZZ.solvePt1(listOf()))
         }
 
         it("works with test data 2") {
-            assertEquals(-1, DayZZZ.solvePt1(listOf()))
+            assertEquals(0, DayZZZ.solvePt1(listOf()))
         }
 
         it("works with task data") {
-            assertEquals(-1, DayZZZ.solvePt1(readLines("ZZZ.txt")))
+            assertEquals(0, DayZZZ.solvePt1(readLines("ZZZ.txt")))
         }
     }
 
     given("AoC 19.ZZZ.2") {
 
         it("works with test data") {
-            assertEquals(-1, DayZZZ.solvePt2(listOf()))
+            assertEquals(0, DayZZZ.solvePt2(listOf()))
         }
 
         it("works with task data") {
-            assertEquals(-1, DayZZZ.solvePt2(readLines("ZZZ.txt")))
+            assertEquals(0, DayZZZ.solvePt2(readLines("ZZZ.txt")))
         }
 
     }

@@ -1,3 +1,5 @@
+import kotlinx.collections.immutable.persistentListOf
+
 object Day11 {
 
     data class Pos(val x: Int, val y: Int) {
@@ -42,10 +44,10 @@ object Day11 {
         }
     }
     
-    tailrec fun drive(cpu: MutableIntCodeComputer, currentPos: Pos, currentDir: Pos, black: Set<Pos>, white: Set<Pos>) : Pair<Set<Pos>, Set<Pos>> {
+    tailrec fun drive(cpu: ICC, currentPos: Pos, currentDir: Pos, black: Set<Pos>, white: Set<Pos>) : Pair<Set<Pos>, Set<Pos>> {
         if (cpu.lastOp == 99L)
             return Pair(black, white)
-        val out = cpu.run(cpu.lastPos)
+        val out = ICC.run(cpu)
         val output = out.output.takeLast(2)
         val color = output.first()
         val newWhite = if (color == 1L) white + currentPos else white - currentPos
@@ -55,19 +57,17 @@ object Day11 {
             else -> right(currentDir)
         }
         val newPos = currentPos.plus(newDir)
-        return drive(out.copy(input = if (newWhite.contains(newPos)) listOf(1L).toMutableList() else listOf(0L).toMutableList()), newPos, newDir, newBlack, newWhite)
+        return drive(out.copy(input = if (newWhite.contains(newPos)) persistentListOf(1L) else persistentListOf(0L)), newPos, newDir, newBlack, newWhite)
     }
 
 
     fun solvePt1(program: List<Long>) : Int {
-        val startCpu = IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf(0))
-        val painted = drive(startCpu, Pos(0,0), UP, emptySet(), emptySet())
+        val painted = drive(IntCodeComputer.immutableFrom(program, listOf(0)), Pos(0,0), UP, emptySet(), emptySet())
         return painted.first.size + painted.second.size
     }
 
     fun solvePt2(program: List<Long>) : String {
-        val startCpu = IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf(1))
-        val painted = drive(startCpu, Pos(0,0), UP, emptySet(), setOf(Pos(0,0)))
+        val painted = drive(IntCodeComputer.immutableFrom(program, listOf(1)), Pos(0,0), UP, emptySet(), setOf(Pos(0,0)))
         printHull(painted.second)
         return "URCAFLCP"
     }

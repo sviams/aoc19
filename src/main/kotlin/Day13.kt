@@ -1,3 +1,4 @@
+import kotlinx.collections.immutable.persistentListOf
 
 typealias Screen = MutableList<MutableList<Int>>
 
@@ -20,9 +21,10 @@ object Day13 {
 
     data class GameOutput(val ball: Int, val paddle: Int, val score: Int)
 
-    tailrec fun play(cpu: MutableIntCodeComputer, playerInput: Long, score: Int) : Int {
+    tailrec fun play(cpu: ICC, playerInput: Long, score: Int) : Int {
         if (cpu.lastOp == 99L && score > 0) return score
-        val out = cpu.copy(input = listOf(playerInput).toMutableList()).run(0)
+        //val out = cpu.copy(input = listOf(playerInput).toMutableList()).run(0)
+        val out = ICC.run(cpu.copy(input = persistentListOf(playerInput)))
         val game = out.output.windowed(3,3).fold(GameOutput(-1, -1, 0)) { acc, p: List<Long> ->
             val x = p[0].toInt()
             val t = p[2].toInt()
@@ -37,14 +39,12 @@ object Day13 {
             else -> -1L
         }
 
-        return play(out.copy(output = mutableListOf()), nextInput, game.score)
+        return play(out.copy(output = persistentListOf()), nextInput, game.score)
     }
 
     fun solvePt1(program: List<Long>) : Int =
-        IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf()).run(0).output.windowed(3,3).count { it[2] == 2L }
+        ICC.run(IntCodeComputer.immutableFrom(program, listOf())).output.windowed(3,3).count { it[2] == 2L }
 
-    fun solvePt2(program: List<Long>) : Int {
-        val startCpu = IntCodeComputer.mutable(IntCodeComputer.parse(listOf(2L) + program.drop(1)), listOf())
-        return play(startCpu, 0L, -1)
-    }
+    fun solvePt2(program: List<Long>) : Int =
+        play(IntCodeComputer.immutableFrom(listOf(2L) + program.drop(1), listOf()), 0L, -1)
 }

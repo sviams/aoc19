@@ -1,20 +1,27 @@
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
+
 object Day7 {
 
-    tailrec fun runUntilHalt(amps: List<MutableIntCodeComputer>, index: Int, program: IntCodeProgram) : Long {
+    tailrec fun runUntilHalt(amps: PersistentList<ICC>, index: Int, program: ImmutableIntCodeProgram) : Long {
         val prevIndex = if (index == 0) 4 else index - 1
         val prevAmp = amps[prevIndex]
         if (amps.all { it.lastOp == 99L }) return prevAmp.output.last()
         val amp = amps[index]
-        if (prevAmp.output.isNotEmpty()) amp.input.add(prevAmp.output.last())
-        else if (index == 0 && amp.state == program) amp.input.add(0)
-        if (amp.input.isNotEmpty() && amp.lastOp != 99L) amp.run(amp.lastPos) //.runIntCode(amp.lastPos)
+
+        val withInput = if (prevAmp.output.isNotEmpty()) amp.copy(input = amp.input.add(prevAmp.output.last()))
+        else if (index == 0 && amp.state == program) amp.copy(input = amp.input.add(0))
+        else amp
+
+        val maybeRun = if (withInput.input.isNotEmpty() && withInput.lastOp != 99L) ICC.run(withInput) else withInput//amp.run(amp.lastPos) //.runIntCode(amp.lastPos)
         val nextIndex = (index+1) % 5
-        return runUntilHalt(amps, nextIndex, program)
+        return runUntilHalt(amps.set(index, maybeRun), nextIndex, program)
     }
 
-    tailrec fun findMaxOutput(program: IntCodeProgram, ampSettings: List<Long>, maxOutput: Long, settingOffset: Long): Long {
+    tailrec fun findMaxOutput(program: ImmutableIntCodeProgram, ampSettings: List<Long>, maxOutput: Long, settingOffset: Long): Long {
         if (ampSettings == listOf(0L,1L,2L,3L,4L).map { it + settingOffset } && maxOutput > 0) return maxOutput
-        val amps = (0 until 5).map { IntCodeComputer.mutable(program, listOf(ampSettings[it])) } //Amp(program.toMutableList(), mutableListOf(), mutableListOf(ampSettings[it]), 0, 0, 0)
+        val amps = (0 until 5).map { IntCodeComputer.immutable(program, persistentListOf(ampSettings[it])) }.toPersistentList() //Amp(program.toMutableList(), mutableListOf(), mutableListOf(ampSettings[it]), 0, 0, 0)
         val output = runUntilHalt(amps, 0, program)
         val nextMax = if (output > maxOutput) output else maxOutput
         val nextSettings = nextSettings(ampSettings, settingOffset)

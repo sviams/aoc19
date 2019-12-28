@@ -1,3 +1,5 @@
+import kotlinx.collections.immutable.*
+
 object IntCodeComputer {
     fun mode(chars: List<Char>, index: Int): Char = chars.drop(index).firstOrNull() ?: '0'
     fun twoParams(modeChars: List<Char>, pos: Long, state: Map<Long, Long>, relBase: Long): List<Long> =
@@ -7,19 +9,29 @@ object IntCodeComputer {
         '1' -> dest
         else -> state[dest] ?: 0
     }
-    fun mutable(program: Map<Long, Long>, input: List<Long>) =
+    fun mutable(program: MutableIntCodeProgram, input: List<Long>) =
         MutableIntCodeComputer(program.toMutableMap(), emptyList<Long>().toMutableList(), input.toMutableList(), 0L, 0L, 0L, 0L)
 
-    fun immutable(program: Map<Long, Long>, input: List<Long>) =
-        ImmutableIntCodeComputer(program, emptyList(), input, 0L, 0L, 0L)
+    fun immutable(program: ImmutableIntCodeProgram, input: List<Long>) =
+        ICC(program.toPersistentHashMap(), persistentListOf(), input.toPersistentList(), 0L, 0L, 0L)
 
-    fun parse(input: List<Long>) : IntCodeProgram = input.foldIndexed(emptyMap()) { index, acc, i ->  acc.plus(index.toLong() to i)}
+    fun immutableFrom(raw: List<Long>, input: List<Long>) =
+        ICC(parse(raw).toPersistentHashMap(), persistentListOf(), input.toPersistentList(), 0L, 0L, 0L)
+
+    fun parseMutable(input: List<Long>) : MutableIntCodeProgram = input.foldIndexed(mutableMapOf()) { index, acc, i ->
+        acc.put(index.toLong(), i)
+        acc
+    }
+
+    fun parse(input: List<Long>) : ImmutableIntCodeProgram = input.foldIndexed(persistentHashMapOf()) { index, acc, i ->  acc.put(index.toLong(), i)}
+
 }
 
 typealias MutableIntCodeProgram = MutableMap<Long, Long>
-typealias IntCodeProgram = Map<Long, Long>
+typealias ImmutableIntCodeProgram = PersistentMap<Long, Long>
+//typealias IntCodeProgram = Map<Long, Long>
 
-data class MutableIntCodeComputer(val state: MutableMap<Long, Long>, val output: MutableList<Long>, val input: MutableList<Long>, var lastOp: Long, var lastPos: Long, val lastOut: Long, var relBase: Long) {
+data class MutableIntCodeComputer(val state: MutableIntCodeProgram, val output: MutableList<Long>, val input: MutableList<Long>, var lastOp: Long, var lastPos: Long, val lastOut: Long, var relBase: Long) {
 
     tailrec fun run(pos: Long): MutableIntCodeComputer {
         val op = state[pos]!! % 100
@@ -66,18 +78,18 @@ data class MutableIntCodeComputer(val state: MutableMap<Long, Long>, val output:
     }
 }
 
-data class ImmutableIntCodeComputer(val state: Map<Long, Long>, val output: List<Long>, val input: List<Long>, val lastOp: Long, val relBase: Long, val pos: Long) {
+data class ICC(val state: PersistentMap<Long, Long>, val output: PersistentList<Long>, val input: PersistentList<Long>, val lastOp: Long, val relBase: Long, val pos: Long) {
 
     companion object {
-        tailrec fun run(cpu: ImmutableIntCodeComputer): ImmutableIntCodeComputer {
+        tailrec fun run(cpu: ICC): ICC {
             val next = cpu.execute()
-            return if (next.lastOp == 99L) next else run(next)
+            return if (next.lastOp == 99L || (cpu.pos == next.pos && next.input.isEmpty())) next else run(next)
         }
     }
 
-    fun execute(): ImmutableIntCodeComputer {
+    fun execute(): ICC {
         val op = state[pos]!! % 100
-        if (op == 99L) return ImmutableIntCodeComputer(state, output, input, op, relBase, pos)
+        if (op == 99L) return ICC(state, output, input, op, relBase, pos)
 
         val modeChars = state[pos].toString().toCharArray().dropLast(2).reversed()
 
@@ -95,20 +107,19 @@ data class ImmutableIntCodeComputer(val state: Map<Long, Long>, val output: List
 
         val nextLastOp = op
 
-        if (op == 3L && input.isEmpty()) return this
+        if (op == 3L && input.isEmpty()) return ICC(state, output, input, op, relBase, pos)
 
-
-        val nextState: Map<Long, Long> = when (op) {
-            1L -> state + (dest to params[0] + params[1])
-            2L -> state + (dest to params[0] * params[1])
-            3L -> state + (dest to input[0])
-            7L -> if (params[0] < params[1]) state + (dest to 1L) else state + (dest to 0L)
-            8L -> if (params[0] == params[1]) state + (dest to 1L) else state + (dest to 0L)
+        val nextState: PersistentMap<Long, Long> = when (op) {
+            1L -> state.put(dest, params[0] + params[1])
+            2L -> state.put(dest, params[0] * params[1])
+            3L -> state.put(dest, input[0])
+            7L -> if (params[0] < params[1]) state.put(dest, 1L) else state.put(dest, 0L)
+            8L -> if (params[0] == params[1]) state.put(dest, 1L) else state.put(dest, 0L)
             else -> state
         }
 
-        val nextInput = if (op == 3L) input.drop(1) else input
-        val nextOutput = if (op == 4L) output + IntCodeComputer.valueOf(state, destModeChar, lastParam, relBase) else output
+        val nextInput = if (op == 3L) input.removeAt(0) else input
+        val nextOutput = if (op == 4L) output.add(IntCodeComputer.valueOf(state, destModeChar, lastParam, relBase)) else output
         val nextRelBase = if (op == 9L) relBase + IntCodeComputer.valueOf(state, destModeChar, lastParam, relBase) else relBase
 
         val nextPos = when (op) {
@@ -117,6 +128,6 @@ data class ImmutableIntCodeComputer(val state: Map<Long, Long>, val output: List
             6L -> if (params[0] == 0L) params[1] else pos+3
             else -> pos+4
         }
-        return ImmutableIntCodeComputer(nextState, nextOutput, nextInput, nextLastOp, nextRelBase, nextPos)
+        return ICC(nextState, nextOutput, nextInput, nextLastOp, nextRelBase, nextPos)
     }
 }

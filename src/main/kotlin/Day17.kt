@@ -1,3 +1,7 @@
+import kotlinx.collections.immutable.PersistentList
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toPersistentList
+
 object Day17 {
 
     fun render(pixels: Map<Pos, Long>) {
@@ -69,7 +73,7 @@ object Day17 {
     }
 
     fun solvePt1(program: List<Long>) : Int {
-        val map = parseMap(IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf()).run(0).output)
+        val map = parseMap(ICC.run(IntCodeComputer.immutable(IntCodeComputer.parse(program), listOf())).output)
         return map.keys.filter { isIntersection(it, map) }.sumBy { it.product() }
     }
 
@@ -93,10 +97,10 @@ object Day17 {
             else -> reduceToOps(allSteps.drop(c.length+1), result.plus('C'),a,b,c)
         }
 
-    fun toInput(s: String) : List<Long> = s.toCharArray().map { it.toLong() } + NEWLINE
+    fun toInput(s: String) : PersistentList<Long> = (s.toCharArray().map { it.toLong() } + NEWLINE).toPersistentList()
 
     fun solvePt2(program: List<Long>) : Long {
-        val map = parseMap(IntCodeComputer.mutable(IntCodeComputer.parse(program), listOf()).run(0).output)
+        val map = parseMap(ICC.run(IntCodeComputer.immutableFrom(program, listOf())).output)
         val startPos = map.filter { it.value == '^'.toLong() }.keys.first()
         val allStepsString = parseSteps(map, startPos, SOUTH, emptyList()).joinToString(",")
         val a = trimCommas(findLargestRepeatingPattern(allStepsString, 20))
@@ -105,11 +109,11 @@ object Day17 {
         val c = trimCommas(allStepsWithoutA.split(b).sortedBy { it.length }.last())
         val main = reduceToOps(allStepsString, emptyList(), a,b,c)
 
-        val afterMain = IntCodeComputer.mutable( IntCodeComputer.parse(listOf(2L) + program.drop(1)), toInput(main)).run(0)
-        val afterA = afterMain.copy(input = toInput(a).toMutableList()).run(afterMain.lastPos)
-        val afterB = afterA.copy(input = toInput(b).toMutableList()).run(afterA.lastPos)
-        val afterC = afterB.copy(input = toInput(c).toMutableList()).run(afterB.lastPos)
-        val final = afterC.copy(input = toInput("n").toMutableList(), output = mutableListOf()).run(afterC.lastPos)
+        val afterMain = ICC.run(IntCodeComputer.immutableFrom(listOf(2L) + program.drop(1), toInput(main)))
+        val afterA = ICC.run(afterMain.copy(input = toInput(a)))
+        val afterB = ICC.run(afterA.copy(input = toInput(b)))
+        val afterC = ICC.run(afterB.copy(input = toInput(c)))
+        val final = ICC.run(afterC.copy(input = toInput("n"), output = persistentListOf()))
 
         return final.output.last()
     }

@@ -3,17 +3,17 @@ object Day21 {
     fun toAsciiInput(s: String) : List<Long> = s.toCharArray().map { it.toLong() } + 10L
     fun compile(c: List<String>) : List<Long> = c.fold(emptyList()) {acc, line -> acc + toAsciiInput(line)}
 
-    fun solvePt1(program: IntCodeProgram) : Long =
-        IntCodeComputer.mutable(program, compile(listOf(
+    fun solvePt1(program: ImmutableIntCodeProgram) : Long =
+        ICC.run(IntCodeComputer.immutable(program, compile(listOf(
             "NOT A J",
             "NOT C T",
             "AND D T",
             "OR T J",
             "WALK"
-        ))).run(0).output.last()
+        )))).output.last()
 
-    fun solvePt2(program: IntCodeProgram) : Long =
-        IntCodeComputer.mutable(program, compile(listOf(
+    fun solvePt2(program: ImmutableIntCodeProgram) : Long =
+        ICC.run(IntCodeComputer.immutable(program, compile(listOf(
             "NOT A J",
             "NOT C T",
             "AND H T",
@@ -24,7 +24,7 @@ object Day21 {
             "OR T J",
             "AND D J",
             "RUN"
-        ))).run(0).output.last()
+        )))).output.last()
 
 
 }

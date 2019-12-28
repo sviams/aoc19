@@ -11,18 +11,18 @@ object DayXYZSpec: Spek({
     given("AoC 19.XYZ.1") {
 
         it("works with test data") {
-            assertEquals(-1, DayXYZ.solvePt1(IntCodeComputer.parse(readLines("XYZ.txt").first().split(",").map { it.toLong() })))
+            assertEquals(0, DayXYZ.solvePt1(IntCodeComputer.parse(readLines("XYZ.txt").first().split(",").map { it.toLong() })))
         }
 
         it("works with task data") {
-            assertEquals(-1, DayXYZ.solvePt1(IntCodeComputer.parse(readLines("XYZ.txt").first().split(",").map { it.toLong() })))
+            assertEquals(0, DayXYZ.solvePt1(IntCodeComputer.parse(readLines("XYZ.txt").first().split(",").map { it.toLong() })))
         }
     }
 
     given("AoC 19.XYZ.2") {
 
         it("works with task data") {
-            assertEquals(-1, DayXYZ.solvePt2(IntCodeComputer.parse(readLines("XYZ.txt").first().split(",").map { it.toLong() })))
+            assertEquals(0, DayXYZ.solvePt2(IntCodeComputer.parse(readLines("XYZ.txt").first().split(",").map { it.toLong() })))
         }
 
     }
