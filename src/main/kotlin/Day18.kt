@@ -1,13 +1,11 @@
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableSet
 import java.lang.Exception
 
 object Day18 {
 
-    fun distanceTo(map: Map<Pos, Char>, doors: Set<Pos>, from: Pos, to: Pos, w: Int, h: Int) : Pair<List<GridPosition>, Int> {
-        val barriers = (map.filter { it.value == '#' }.keys + doors).map { GridPosition(it.x, it.y) }.toSet()
-        val grid = SquareGrid(w,h,listOf(barriers))
-        val (steps, dist) = try { aStarSearch(from.toGP(), to.toGP(), grid) } catch (e: Exception) { Pair(emptyList<GridPosition>(),Int.MAX_VALUE)}
-        return Pair(steps, dist)
-    }
+    fun distanceTo(walls: Set<Pos>, doors: Set<Pos>, from: Pos, to: Pos, w: Int, h: Int) : Path =
+        try { AStar.shortestPath(from, to, (walls + doors).toImmutableSet()) } catch (e: Exception) { persistentListOf() }
 
     data class KeyInfo(val requires: List<Char>, val distance: Int)
 
@@ -15,15 +13,15 @@ object Day18 {
         if (keysToFind.isEmpty()) return result
 
         val positionsOfInterest = keysToFind.keys + pos
+        val walls = map.filter { it.value == '#' }.keys
 
         return  positionsOfInterest.map { intPos ->
             intPos to keysToFind.minus(intPos).map { (keyPos, keyName) ->
-                val (steps, dist) = distanceTo(map, emptySet(), intPos, keyPos, w, h)
+                val steps = distanceTo(walls, emptySet(), intPos, keyPos, w, h)
                 val doorsBetween = steps.drop(1).fold(emptyList<Char>()) { acc, step ->
-                    val p = Pos(step.first, step.second)
-                    if (doors.containsKey(p)) acc + doors[p]!!.toLowerCase() else acc
+                    if (doors.containsKey(step)) acc + doors[step]!!.toLowerCase() else acc
                 }
-                keyName to KeyInfo(doorsBetween, dist)
+                keyName to KeyInfo(doorsBetween, if (steps.isNotEmpty()) steps.size-1 else Int.MAX_VALUE)
             }.toMap().filter { it.value.distance < Int.MAX_VALUE }
         }.toMap()
     }

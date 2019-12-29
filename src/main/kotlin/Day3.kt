@@ -1,5 +1,3 @@
-import java.lang.Integer.max
-import kotlin.math.min
 
 object Day3 {
 
@@ -10,7 +8,7 @@ object Day3 {
     val xMap = mapOf('D' to 0, 'U' to 0, 'R' to 1, 'L' to -1 )
     val yMap = mapOf('D' to -1, 'U' to 1, 'R' to 0, 'L' to 0 )
 
-    tailrec fun wireToPoints(nodes: List<String>, result: Path, last: Pos) : Path {
+    tailrec fun wireToPoints(nodes: List<String>, result: List<Pos>, last: Pos) : List<Pos> {
         if (nodes.isEmpty()) return result
         val move = nodes.first()
         val dir = move.first()
@@ -22,7 +20,7 @@ object Day3 {
         return wireToPoints(nodes.minus(move), result.plus(newDots), nextLast)
     }
 
-    tailrec fun connectDots(start: Pos, dx: Int, dy: Int, steps: Int, result: Path) : Path {
+    tailrec fun connectDots(start: Pos, dx: Int, dy: Int, steps: Int, result: List<Pos>) : List<Pos> {
         if (steps == 0) return result
         val next = Pos(start.x + dx, start.y + dy)
         return connectDots(next, dx, dy, steps-1, result.plus(next))

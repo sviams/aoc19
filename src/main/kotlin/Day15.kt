@@ -75,8 +75,6 @@ object Day15 {
         val newEntry = if (existingEntry != null && existingEntry.distance < stepsThere) existingEntry else TypeAndDistance(status, stepsThere)
         val nextMap = map.plus(checkPos to newEntry)
         val nextPos = if (status == WALL) pos else checkPos
-        if (newEntry.type == GOAL) System.out.println("Oxygenizer at $checkPos")
-        //render(nextMap, nextPos, nextDir)
         if (status == goal || nextMap.size == 1654) return Pair(nextMap, out)
         return findOrFlood(out, nextPos, nextDir, goal, nextMap)
     }

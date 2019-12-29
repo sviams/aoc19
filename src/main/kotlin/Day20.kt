@@ -1,52 +1,51 @@
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableSet
 import java.lang.Exception
 
 object Day20 {
 
     data class NameAndDistance(val name: String, val distance: Int)
 
-    data class PositionOfInterest(val pos: GridPosition, val name: String, val connectsTo: Map<GridPosition, NameAndDistance>)
+    data class PositionOfInterest(val pos: Pos, val name: String, val connectsTo: Map<Pos, NameAndDistance>)
 
-    val NORTH = GridPosition(0,-1)
-    val SOUTH = GridPosition(0,1)
-    val WEST = GridPosition(-1,0)
-    val EAST = GridPosition(1,0)
+    val NORTH = Pos(0,-1)
+    val SOUTH = Pos(0,1)
+    val WEST = Pos(-1,0)
+    val EAST = Pos(1,0)
 
-    fun poiAtPos(map: List<String>, pos: GridPosition): Pair<PositionOfInterest, GridPosition>? =
-        listOf(NORTH, SOUTH, EAST, WEST).fold(emptyList<Pair<PositionOfInterest, GridPosition>>()) { acc, dir ->
-            val checkPos = GridPosition(pos.first + dir.first + 2, pos.second + dir.second + 2)
-            val atPos = map.get(pos.second + 2).get(pos.first + 2)
+    fun poiAtPos(map: List<String>, pos: Pos): Pair<PositionOfInterest, Pos>? =
+        listOf(NORTH, SOUTH, EAST, WEST).fold(emptyList<Pair<PositionOfInterest, Pos>>()) { acc, dir ->
+            val checkPos = Pos(pos.x + dir.x + 2, pos.y + dir.y + 2)
+            val atPos = map.get(pos.y + 2).get(pos.x + 2)
             if (atPos == '.') {
-                val atDir = map.get(pos.second + dir.second + 2).get(pos.first + dir.first + 2)
+                val atDir = map.get(pos.y + dir.y + 2).get(pos.x + dir.x + 2)
                 if (atDir.isLetter()) {
-                    val otherLetter = map.get(pos.second + dir.second*2 + 2).get(pos.first + dir.first*2 + 2)
-                    val name = if (dir.first == -1 || dir.second == -1) listOf(otherLetter, atDir) else listOf(atDir, otherLetter)
-                    acc + (PositionOfInterest(pos, name.joinToString(""), emptyMap()) to GridPosition(checkPos.first-2, checkPos.second-2))
+                    val otherLetter = map.get(pos.y + dir.y*2 + 2).get(pos.x + dir.x*2 + 2)
+                    val name = if (dir.x == -1 || dir.y == -1) listOf(otherLetter, atDir) else listOf(atDir, otherLetter)
+                    acc + (PositionOfInterest(pos, name.joinToString(""), emptyMap()) to Pos(checkPos.x-2, checkPos.y-2))
                 } else acc
             }
             else acc
         }.firstOrNull()
 
-    fun distanceTo(barriers: Set<GridPosition>, from: GridPosition, to: GridPosition, w: Int, h: Int) : Pair<List<GridPosition>, Int> {
-        val grid = SquareGrid(w,h,listOf(barriers))
-        val (steps, dist) = try { aStarSearch(from, to, grid) } catch (e: Exception) { Pair(emptyList<GridPosition>(),Int.MAX_VALUE)}
-        return Pair(steps, dist)
-    }
+    fun distanceTo(barriers: Set<Pos>, from: Pos, to: Pos, w: Int, h: Int) : Path =
+        try { AStar.shortestPath(from, to, barriers.toImmutableSet()) } catch (e: Exception) { persistentListOf() }
 
-    fun resolveConnections(item: PositionOfInterest, barriers: Set<GridPosition>, others: List<PositionOfInterest>, w: Int, h: Int) : PositionOfInterest {
-        val connections: Map<GridPosition, NameAndDistance> = others.map { other ->
-            val (steps, dist) = distanceTo(barriers, item.pos, other.pos, w, h)
-            other.pos to NameAndDistance(other.name, dist)
+    fun resolveConnections(item: PositionOfInterest, barriers: Set<Pos>, others: List<PositionOfInterest>, w: Int, h: Int) : PositionOfInterest {
+        val connections: Map<Pos, NameAndDistance> = others.map { other ->
+            val path = distanceTo(barriers, item.pos, other.pos, w, h)
+            other.pos to NameAndDistance(other.name, if (path.isNotEmpty()) path.size-1 else Int.MAX_VALUE)
         }.toMap().filter { it.value.distance < Int.MAX_VALUE }
         return item.copy(connectsTo = connections)
     }
 
-    fun teleport(pois: Map<GridPosition, PositionOfInterest>, from: PositionOfInterest) : PositionOfInterest {
+    fun teleport(pois: Map<Pos, PositionOfInterest>, from: PositionOfInterest) : PositionOfInterest {
         val others = pois.minus(from.pos)
         return if (others.any { it.value.name == from.name }) others.filter { it.value.name == from.name }.entries.first().value
         else from
     }
 
-    fun walkMaze(pois: Map<GridPosition, PositionOfInterest>, start: PositionOfInterest, memo: MutableMap<GridPosition, Int>, steps: Int) : MutableMap<GridPosition, Int> {
+    fun walkMaze(pois: Map<Pos, PositionOfInterest>, start: PositionOfInterest, memo: MutableMap<Pos, Int>, steps: Int) : MutableMap<Pos, Int> {
         if (start.name == "ZZ") return memo
 
         start.connectsTo.forEach { (otherPos, info) ->
@@ -63,7 +62,7 @@ object Day20 {
         return memo
     }
 
-    fun teleportRecursive(outside: Map<GridPosition, PositionOfInterest>, inside: Map<GridPosition, PositionOfInterest>, from: PositionOfInterest, level: Int) : Pair<PositionOfInterest, Int>{
+    fun teleportRecursive(outside: Map<Pos, PositionOfInterest>, inside: Map<Pos, PositionOfInterest>, from: PositionOfInterest, level: Int) : Pair<PositionOfInterest, Int>{
         return if (outside.any { it.value.name == from.name && it.key != from.pos}) outside.filter { it.value.name == from.name }.entries.first().value to level + 1
         else if (inside.any { it.value.name == from.name && it.key != from.pos }) inside.filter { it.value.name == from.name }.entries.first().value to level - 1
         else from to level
@@ -71,7 +70,7 @@ object Day20 {
 
 
 
-    fun walkMazeRecursive(outside: Map<GridPosition, PositionOfInterest>, inside: Map<GridPosition, PositionOfInterest>, start: PositionOfInterest, memo: MutableMap<String, Int>, steps: Int, level: Int) : Int {
+    fun walkMazeRecursive(outside: Map<Pos, PositionOfInterest>, inside: Map<Pos, PositionOfInterest>, start: PositionOfInterest, memo: MutableMap<String, Int>, steps: Int, level: Int) : Int {
         if (start.name == "ZZ") return steps
         val totalPortals = (outside.size + inside.size) / 2
         val totalSteps = (outside + inside).entries.sumBy { it.value.connectsTo.values.sumBy { it.distance } }
@@ -95,9 +94,9 @@ object Day20 {
         val totalWidth = input.drop(2).first().length - 2
         val totalHeight = input.size - 4
 
-        val poisAndBarriers = (0 until totalHeight).fold(emptyList<Pair<PositionOfInterest, GridPosition>>()) { rowAcc, row ->
+        val poisAndBarriers = (0 until totalHeight).fold(emptyList<Pair<PositionOfInterest, Pos>>()) { rowAcc, row ->
             (0 until totalWidth).fold(rowAcc) { colAcc, col ->
-                val p = GridPosition(col, row)
+                val p = Pos(col, row)
                 val maybePoiAndPlug = poiAtPos(input, p)
                 if (maybePoiAndPlug != null) colAcc + maybePoiAndPlug else colAcc
             }
@@ -111,11 +110,11 @@ object Day20 {
         val insideWithPlugs = poisAndBarriers.filter { !outsideWithPlugs.contains(it) }
         val outside = outsideWithPlugs.map { it.first }
         val inside = insideWithPlugs.map { it.first }
-        val outPlugs = outsideWithPlugs.map { it.second }.filter { it.first >= 0 && it.second >= 0 }
-        val inPlugs = insideWithPlugs.map { it.second }.filter { it.first >= 0 && it.second >= 0 }
+        val outPlugs = outsideWithPlugs.map { it.second }.filter { it.x >= 0 && it.y >= 0 }
+        val inPlugs = insideWithPlugs.map { it.second }.filter { it.x >= 0 && it.y >= 0 }
 
-        val barriers: Set<GridPosition> = input.drop(2).dropLast(2).foldIndexed(emptySet<GridPosition>()) { rowIndex, rowAcc, row ->
-            rowAcc + row.drop(2).foldIndexed(emptySet<GridPosition>()) { colIndex, colAcc, c -> if (c == '#') colAcc + GridPosition(colIndex, rowIndex) else colAcc }
+        val barriers: Set<Pos> = input.drop(2).dropLast(2).foldIndexed(emptySet<Pos>()) { rowIndex, rowAcc, row ->
+            rowAcc + row.drop(2).foldIndexed(emptySet<Pos>()) { colIndex, colAcc, c -> if (c == '#') colAcc + Pos(colIndex, rowIndex) else colAcc }
         } + outPlugs + inPlugs
 
         val allPois = outside + inside
