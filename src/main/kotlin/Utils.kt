@@ -50,7 +50,18 @@ object AStar {
         return generatePath(nextCurrent, cameFrom, nextResult)
     }
 
-    private fun insideGrid(p: Pos) : Boolean = p.isInFirstQuadrant()
+    private tailrec fun checkNeighbors(neighbors: PersistentList<Pos>, current: Pos, end: Pos, o: PersistentSet<Pos>, cfs: PersistentMap<Pos, Int>, cf: PersistentMap<Pos, Pos>, ectf: PersistentMap<Pos, Int>)
+        : Quad<PersistentSet<Pos>, PersistentMap<Pos, Int>, PersistentMap<Pos, Pos>, PersistentMap<Pos, Int>> {
+        if (neighbors.isEmpty()) return Quad(o, cfs, cf, ectf)
+        val neighbor = neighbors[0]
+        val score = cfs.getValue(current) + 1
+        val isBetter = score < cfs.getOrDefault(neighbor, MAX_SCORE)
+        val no = if (isBetter && !o.contains(neighbor)) o.add(neighbor) else o
+        val ncf = if (isBetter) cf.put(neighbor, current) else cf
+        val ncfs = if (isBetter) cfs.put(neighbor, score) else cfs
+        val nectf = if (isBetter) ectf.put(neighbor, score + neighbor.distanceTo(end)) else ectf
+        return checkNeighbors(neighbors.removeAt(0), current, end, no, ncfs, ncf, nectf)
+    }
 
     private tailrec fun walk(
         end: Pos,
@@ -60,23 +71,13 @@ object AStar {
         estimatedCostToFinish: PersistentMap<Pos, Int>,
         cameFrom: PersistentMap<Pos, Pos>)
     : Path {
-
         if (open.isEmpty()) throw IllegalArgumentException("No path to $end")
         val current = open.minBy { estimatedCostToFinish.getValue(it) }!!
         if (current == end) return generatePath(end, cameFrom)
         val openWithoutCurrent: PersistentSet<Pos> = open.remove(current)
         val closedWithCurrent = closed.add(current)
-        val openNeighbors: List<Pos> = current.neighbors().filter { it.isInFirstQuadrant() }.filterNot { closedWithCurrent.contains(it) }
-        val initial = Quad(openWithoutCurrent, costFromStart, cameFrom, estimatedCostToFinish)
-        val (nextOpen, nextCostFromStart, nextCameFrom, nextEstimatedCostToFinish) = openNeighbors.fold(initial) { (o: PersistentSet<Pos>,cfs: PersistentMap<Pos, Int>,cf: PersistentMap<Pos, Pos>,ectf: PersistentMap<Pos, Int>), neighbor: Pos ->
-            val score = cfs.getValue(current) + 1
-            val isBetter = score < cfs.getOrDefault(neighbor, MAX_SCORE)
-            val no = if (isBetter && !o.contains(neighbor)) o.add(neighbor) else o
-            val ncf = if (isBetter) cf.put(neighbor, current) else cf
-            val ncfs = if (isBetter) cfs.put(neighbor, score) else cfs
-            val nectf = if (isBetter) ectf.put(neighbor, score + neighbor.distanceTo(end)) else ectf
-            Quad(no, ncfs, ncf, nectf)
-        }
+        val openNeighbors = current.neighbors().filter { it.isInFirstQuadrant() }.filterNot { closedWithCurrent.contains(it) }.toPersistentList()
+        val (nextOpen, nextCostFromStart, nextCameFrom, nextEstimatedCostToFinish) = checkNeighbors(openNeighbors, current, end, openWithoutCurrent, costFromStart, cameFrom, estimatedCostToFinish)
         return walk(end, nextOpen, closedWithCurrent, nextCostFromStart, nextEstimatedCostToFinish, nextCameFrom)
     }
 
